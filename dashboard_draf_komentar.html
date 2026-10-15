@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#161923">
+<title>Dashboard Draf Komentar</title>
+<style>
+:root{--bg:#f4f6fb;--panel:#fff;--ink:#202536;--muted:#687086;--line:#e2e6ef;--accent:#c13584;--accent2:#833ab4;--good:#16794b;--warn:#9a5b00;--bad:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(120deg,#262a3a,#592c72,#c13584);color:white;padding:24px 18px}
+.wrap{max-width:1100px;margin:auto}h1{font-size:clamp(1.45rem,4vw,2rem);margin:0 0 6px}header p{margin:0;color:#f6eefa}
+main{max-width:1100px;margin:18px auto;padding:0 14px 40px;display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 16px #20253608;min-width:0}
+h2{font-size:1.05rem;margin:0 0 12px}label{display:block;font-weight:650;font-size:.9rem;margin:12px 0 5px}
+input,textarea,select{width:100%;font:inherit;border:1px solid #cfd5e2;border-radius:9px;padding:10px 11px;background:white;color:var(--ink)}
+textarea{min-height:120px;resize:vertical}input:focus,textarea:focus,select:focus{outline:2px solid #c1358430;border-color:var(--accent)}
+button,.button{border:0;border-radius:9px;padding:10px 12px;font:600 .92rem system-ui;cursor:pointer;background:#eeeaf5;color:#3d2454;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button.primary{background:var(--accent2);color:white}button.danger{background:#fff0ef;color:var(--bad)}button.small{padding:7px 9px;font-size:.82rem}button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.help{color:var(--muted);font-size:.84rem;margin:7px 0}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:11px}.stat strong{display:block;font-size:1.35rem}.stat span{color:var(--muted);font-size:.78rem}
+.toolbar{display:grid;grid-template-columns:1fr 150px;gap:8px;margin-bottom:12px}
+.list{display:flex;flex-direction:column;gap:10px}.item{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.item-top{display:flex;justify-content:space-between;gap:8px;align-items:start}.item p{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0}.meta{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}.pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:.75rem;font-weight:700;background:#eee;color:#444}.pill.draft{background:#edf0f7;color:#46516a}.pill.reviewed{background:#fff2d6;color:#855100}.pill.done{background:#dff6e8;color:#17643f}.pill.duplicate{background:#ffe8e6;color:#a4261b}
+.item-buttons{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.empty{padding:28px 10px;text-align:center;color:var(--muted);border:1px dashed #cfd5e2;border-radius:12px}
+.notice{background:#fff8e8;border:1px solid #f1d89d;color:#684b11;border-radius:12px;padding:12px;font-size:.86rem;margin-bottom:14px}
+footer{max-width:1100px;margin:0 auto;padding:0 14px 26px;color:var(--muted);font-size:.82rem}
+@media(max-width:780px){main{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.stats{gap:6px}.stat{padding:9px}.panel{padding:13px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Dashboard Draf Komentar</h1><p>Kelola draf, tautan postingan, dan status pengerjaan — tanpa otomatisasi pengiriman.</p></div></header>
+<main>
+<section class="panel">
+<h2 id="formTitle">Tambah draf komentar</h2>
+<form id="draftForm">
+<input type="hidden" id="editId">
+<label for="comment">Teks komentar</label>
+<textarea id="comment" maxlength="2200" required placeholder="Tulis komentar yang relevan dengan isi postingan…"></textarea>
+<div class="help"><span id="charCount">0</span>/2200 karakter. Draf disimpan di browser ini.</div>
+<label for="postUrl">Tautan postingan Instagram (opsional)</label>
+<input id="postUrl" type="url" placeholder="https://www.instagram.com/p/…">
+<label for="status">Status</label>
+<select id="status">
+<option value="draft">Draf</option><option value="reviewed">Sudah ditinjau</option><option value="done">Selesai secara manual</option>
+</select>
+<div class="actions"><button class="primary" type="submit" id="saveBtn">Simpan draf</button><button type="button" id="resetBtn">Kosongkan</button></div>
+<p id="formMessage" class="help" aria-live="polite"></p>
+</form>
+<hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+<h2>Cadangan data</h2>
+<p class="help">Ekspor cadangan secara berkala. Data lokal tidak otomatis berpindah antarperangkat.</p>
+<div class="actions">
+<button type="button" id="exportBtn">Ekspor JSON</button>
+<button type="button" id="exportCsvBtn">Ekspor CSV</button>
+<button type="button" id="importBtn">Impor JSON</button>
+<input id="importFile" type="file" accept=".json,application/json" hidden>
+</div>
+</section>
+<section class="panel">
+<div class="notice"><strong>Catatan:</strong> komentar dan tautan disimpan secara lokal di browser. Jangan masukkan kata sandi, cookie, token, atau data login Instagram. Gunakan komentar yang autentik dan patuhi aturan platform.</div>
+<div class="stats">
+<div class="stat"><strong id="totalCount">0</strong><span>Total draf</span></div>
+<div class="stat"><strong id="reviewCount">0</strong><span>Sudah ditinjau</span></div>
+<div class="stat"><strong id="doneCount">0</strong><span>Selesai</span></div>
+</div>
+<div class="toolbar">
+<input id="search" type="search" placeholder="Cari teks atau tautan…">
+<select id="filter"><option value="all">Semua status</option><option value="draft">Draf</option><option value="reviewed">Sudah ditinjau</option><option value="done">Selesai</option><option value="duplicates">Komentar duplikat</option></select>
+</div>
+<div id="draftList" class="list"></div>
+</section>
+</main>
+<footer>Versi prototipe gratis • Penyimpanan localStorage • Tidak terhubung ke Instagram atau Postoria API.</footer>
+<script>
+(() => {
+  const KEY = "commentDraftDashboard.v1";
+  const $ = id => document.getElementById(id);
+  let drafts = [];
+  try { drafts = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(drafts)) drafts = []; }
+  catch { drafts = []; }
+  const normalize = s => (s || "").normalize("NFKC").toLocaleLowerCase("id").replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+  const statusText = s => ({draft:"Draf", reviewed:"Sudah ditinjau", done:"Selesai secara manual"}[s] || "Draf");
+  const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const save = () => localStorage.setItem(KEY, JSON.stringify(drafts));
+  const duplicateIds = () => {
+    const groups = new Map();
+    drafts.forEach(d => { const n = normalize(d.comment); if(n){ if(!groups.has(n))groups.set(n,[]); groups.get(n).push(d.id); } });
+    return new Set([...groups.values()].filter(a => a.length > 1).flat());
+  };
+  const resetForm = () => {
+    $("draftForm").reset(); $("editId").value = ""; $("charCount").textContent = "0";
+    $("formTitle").textContent = "Tambah draf komentar"; $("saveBtn").textContent = "Simpan draf"; $("formMessage").textContent = "";
+  };
+  $("comment").addEventListener("input", () => $("charCount").textContent = $("comment").value.length);
+  $("resetBtn").addEventListener("click", resetForm);
+  $("draftForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const comment = $("comment").value.trim(), postUrl = $("postUrl").value.trim(), status = $("status").value, id = $("editId").value;
+    if (!comment) return;
+    if (postUrl) { try { const u = new URL(postUrl); if (!["https:","http:"].includes(u.protocol)) throw Error(); } catch { $("formMessage").textContent = "Masukkan URL yang valid."; return; } }
+    if (id) {
+      const d = drafts.find(x => x.id === id);
+      if (d) Object.assign(d, {comment, postUrl, status, updatedAt: new Date().toISOString()});
+    } else drafts.unshift({id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random(), comment, postUrl, status, createdAt:new Date().toISOString()});
+    save(); resetForm(); render();
+  });
+  function editDraft(id) {
+    const d = drafts.find(x => x.id === id); if (!d) return;
+    $("editId").value=d.id; $("comment").value=d.comment; $("postUrl").value=d.postUrl || ""; $("status").value=d.status || "draft";
+    $("charCount").textContent=d.comment.length; $("formTitle").textContent="Edit draf komentar"; $("saveBtn").textContent="Simpan perubahan";
+    $("formMessage").textContent="Sedang mengedit draf."; window.scrollTo({top:0,behavior:"smooth"});
+  }
+  function setStatus(id, status) { const d=drafts.find(x=>x.id===id); if(d){d.status=status;d.updatedAt=new Date().toISOString();save();render();} }
+  function removeDraft(id) { if(confirm("Hapus draf ini?")){drafts=drafts.filter(x=>x.id!==id);save();render();} }
+  function copyText(text) { if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(()=>alert("Komentar disalin.")).catch(()=>fallbackCopy(text)); else fallbackCopy(text); }
+  function fallbackCopy(text) { const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");alert("Komentar disalin.");}catch{alert("Salin teks secara manual.");}ta.remove(); }
+  function render() {
+    const dup = duplicateIds(), q=normalize($("search").value), f=$("filter").value;
+    $("totalCount").textContent=drafts.length;
+    $("reviewCount").textContent=drafts.filter(d=>d.status==="reviewed").length;
+    $("doneCount").textContent=drafts.filter(d=>d.status==="done").length;
+    let rows=drafts.filter(d => (!q || normalize(d.comment+" "+(d.postUrl||"")).includes(q)) && (f==="all" || (f==="duplicates"?dup.has(d.id):d.status===f)));
+    const list=$("draftList");
+    if(!rows.length){list.innerHTML='<div class="empty">Belum ada draf yang cocok. Tambahkan draf melalui formulir.</div>';return;}
+    list.innerHTML=rows.map((d,i)=>`
+      <article class="item">
+        <div class="item-top"><div class="meta">Draf ${drafts.length-drafts.indexOf(d)} · ${d.createdAt ? new Date(d.createdAt).toLocaleDateString("id-ID") : ""}</div><div style="display:flex;gap:5px;flex-wrap:wrap"><span class="pill ${escapeHtml(d.status||"draft")}">${statusText(d.status)}</span>${dup.has(d.id)?'<span class="pill duplicate">Duplikat</span>':""}</div></div>
+        <p>${escapeHtml(d.comment)}</p>
+        ${d.postUrl?`<div class="meta">Postingan: <a href="${escapeHtml(d.postUrl)}" target="_blank" rel="noopener noreferrer">Buka tautan</a></div>`:'<div class="meta">Belum ada tautan postingan</div>'}
+        <div class="item-buttons">
+          <button class="small" data-action="copy" data-id="${escapeHtml(d.id)}">Salin komentar</button>
+          <button class="small" data-action="edit" data-id="${escapeHtml(d.id)}">Edit</button>
+          <button class="small" data-action="status" data-id="${escapeHtml(d.id)}" data-status="reviewed">Tandai ditinjau</button>
+          <button class="small" data-action="status" data-id="${escapeHtml(d.id)}" data-status="done">Tandai selesai</button>
+          <button class="small danger" data-action="delete" data-id="${escapeHtml(d.id)}">Hapus</button>
+        </div>
+      </article>`).join("");
+  }
+  $("draftList").addEventListener("click", e => {
+    const b=e.target.closest("button[data-action]");if(!b)return;
+    const {action,id,status}=b.dataset;
+    if(action==="copy"){const d=drafts.find(x=>x.id===id);if(d)copyText(d.comment);}
+    if(action==="edit")editDraft(id);
+    if(action==="status")setStatus(id,status);
+    if(action==="delete")removeDraft(id);
+  });
+  $("search").addEventListener("input",render);$("filter").addEventListener("change",render);
+  function download(name, content, type) { const a=document.createElement("a");const u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000); }
+  $("exportBtn").addEventListener("click",()=>download("draf-komentar.json",JSON.stringify(drafts,null,2),"application/json"));
+  $("exportCsvBtn").addEventListener("click",()=>{
+    const quote=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+    const csv=[["komentar","tautan","status","dibuat"].map(quote).join(","),...drafts.map(d=>[d.comment,d.postUrl,statusText(d.status),d.createdAt].map(quote).join(","))].join("\r\n");
+    download("draf-komentar.csv","\ufeff"+csv,"text/csv;charset=utf-8");
+  });
+  $("importBtn").addEventListener("click",()=>$("importFile").click());
+  $("importFile").addEventListener("change",async e=>{
+    const file=e.target.files[0];if(!file)return;
+    try {
+      const incoming=JSON.parse(await file.text());
+      if(!Array.isArray(incoming))throw Error("Format tidak sesuai.");
+      const valid=incoming.filter(d=>d && typeof d.comment==="string").map(d=>({id:String(d.id||((Date.now()+Math.random()).toString(36))),comment:d.comment,postUrl:typeof d.postUrl==="string"?d.postUrl:"",status:["draft","reviewed","done"].includes(d.status)?d.status:"draft",createdAt:d.createdAt||new Date().toISOString()}));
+      if(confirm(`Impor ${valid.length} draf? Draf yang memiliki ID sama akan diperbarui.`)){
+        const map=new Map(drafts.map(d=>[d.id,d]));valid.forEach(d=>map.set(d.id,d));drafts=[...map.values()];save();render();alert("Impor selesai.");
+      }
+    } catch(err){alert("Gagal mengimpor file JSON: "+err.message);}
+    e.target.value="";
+  });
+  render();
+})();
+</script>
+</body>
+</html>
